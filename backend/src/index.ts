@@ -13,7 +13,19 @@ import { tiposLancamentoRouter } from './routes/tiposLancamento.js';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173', credentials: true }));
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''));
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      const normalized = origin ? origin.replace(/\/$/, '') : '';
+      const allowed = !origin || allowedOrigins.some((o) => normalized === o);
+      cb(null, allowed ? (origin || allowedOrigins[0]) : false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
