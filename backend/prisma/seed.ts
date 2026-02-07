@@ -28,6 +28,17 @@ async function main() {
     },
   });
 
+  const hashMustafa = await bcrypt.hash('mustafa123', 10);
+  await prisma.user.upsert({
+    where: { email: 'mustafa@mustafa.com' },
+    update: {},
+    create: {
+      email: 'mustafa@mustafa.com',
+      password: hashMustafa,
+      name: 'Admin Mustafá',
+    },
+  });
+
   const tiposProvento = [
     { codigo: 'SALARIO', nome: 'Salário base', tipo: 'provento', incideInss: true, incideIrrf: true },
     { codigo: 'HE', nome: 'Horas extras', tipo: 'provento', incideInss: true, incideIrrf: true },
