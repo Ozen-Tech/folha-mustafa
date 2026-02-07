@@ -1,0 +1,11 @@
+**/node_modules/
+**/dist/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.tsbuildinfo
+**/dev.db
+backend/dev.db
+backend/uploads/
+frontend/.vite/
+

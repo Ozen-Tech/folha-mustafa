@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model Cargo {
+  id           String        @id @default(cuid())
+  nome         String
+  salarioBase  Float         @default(0)
+  funcionarios Funcionario[]
+}
+
+model Funcionario {
+  id             String           @id @default(cuid())
+  nome           String
+  cpf            String           @unique
+  email          String?
+  dataAdmissao   DateTime
+  ativo          Boolean          @default(true)
+  cargoId        String
+  banco          String?
+  agencia        String?
+  conta          String?
+  valeTransporte Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  cargo        Cargo         @relation(fields: [cargoId], references: [id], onDelete: Restrict)
+  folhas       FolhaFuncionario[]
+}
+
+model Competencia {
+  id     String   @id @default(cuid())
+  ano    Int
+  mes    Int
+  folhas FolhaPagamento[]
+
+  @@unique([ano, mes])
+}
+
+model FolhaPagamento {
+  id            String   @id @default(cuid())
+  competenciaId String
+  fechada       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competencia Competencia        @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+  itens       FolhaFuncionario[]
+}
+
+model FolhaFuncionario {
+  id                String   @id @default(cuid())
+  folhaPagamentoId  String
+  funcionarioId     String
+  salarioBruto      Float    @default(0)
+  totalProventos    Float    @default(0)
+  totalDescontos    Float    @default(0)
+  baseInss          Float    @default(0)
+  valorInss         Float    @default(0)
+  baseIrrf          Float    @default(0)
+  valorIrrf         Float    @default(0)
+  salarioLiquido    Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  folhaPagamento FolhaPagamento @relation(fields: [folhaPagamentoId], references: [id], onDelete: Cascade)
+  funcionario    Funcionario    @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  lancamentos   Lancamento[]
+}
+
+model TipoLancamento {
+  id        String   @id @default(cuid())
+  codigo    String   @unique
+  nome      String
+  tipo      String   // "provento" | "desconto"
+  incideInss Boolean  @default(true)
+  incideIrrf Boolean  @default(true)
+  lancamentos Lancamento[]
+}
+
+model Lancamento {
+  id                 String   @id @default(cuid())
+  folhaFuncionarioId String
+  tipoLancamentoId   String
+  valor              Float
+  referencia         String?  // ex: "Horas extras", "Falta dia 15"
+
+  folhaFuncionario FolhaFuncionario @relation(fields: [folhaFuncionarioId], references: [id], onDelete: Cascade)
+  tipoLancamento   TipoLancamento   @relation(fields: [tipoLancamentoId], references: [id], onDelete: Restrict)
+}
+
+model ParametroFolha {
+  id          String   @id @default(cuid())
+  ano         Int
+  descricao   String
+  tipo        String   // "inss" | "irrf"
+  faixas      String   // JSON: [{ ate: number, aliquota: number, deducao?: number }]
+  @@unique([ano, tipo])
+}
