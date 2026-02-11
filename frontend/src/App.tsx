@@ -9,6 +9,7 @@ import Cargos from './pages/Cargos';
 import Importacao from './pages/Importacao';
 import Folha from './pages/Folha';
 import FolhaDetalhe from './pages/FolhaDetalhe';
+import { auth } from './api';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [ok, setOk] = useState<boolean | null>(null);
@@ -18,9 +19,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       setOk(false);
       return;
     }
-    fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + t } })
-      .then((r) => (r.ok ? setOk(true) : setOk(false)))
-      .catch(() => setOk(false));
+    auth.me()
+      .then(() => setOk(true))
+      .catch(() => {
+        localStorage.removeItem('token');
+        setOk(false);
+      });
   }, []);
   if (ok === null) return <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando...</div>;
   if (!ok) return <Navigate to="/login" replace />;
@@ -48,7 +52,7 @@ export default function App() {
         <Route path="folha" element={<Folha />} />
         <Route path="folha/:competenciaId" element={<FolhaDetalhe />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
