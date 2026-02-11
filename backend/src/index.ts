@@ -41,5 +41,9 @@ app.use('/api/tipos-lancamento', tiposLancamentoRouter);
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
-  console.log(`API rodando em http://localhost:${PORT}`);
+  const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  console.log(`API rodando em ${url}`);
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`Ambiente: PRODUÇÃO`);
+  }
 });
