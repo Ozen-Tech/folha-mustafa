@@ -46,6 +46,11 @@ export const auth = {
       method: 'POST',
       body: { email, password },
     }),
+  register: (email: string, password: string, name?: string) =>
+    api<{ id: string; email: string; name: string | null }>('/auth/register', {
+      method: 'POST',
+      body: { email, password, name },
+    }),
   me: () => api<{ id: string; email: string; name: string | null }>('/auth/me'),
 };
 

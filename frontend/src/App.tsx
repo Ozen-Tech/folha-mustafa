@@ -9,6 +9,7 @@ import Cargos from './pages/Cargos';
 import Importacao from './pages/Importacao';
 import Folha from './pages/Folha';
 import FolhaDetalhe from './pages/FolhaDetalhe';
+import CriarUsuario from './pages/CriarUsuario';
 import { auth } from './api';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="importar" element={<Importacao />} />
         <Route path="folha" element={<Folha />} />
         <Route path="folha/:competenciaId" element={<FolhaDetalhe />} />
+        <Route path="usuarios/novo" element={<CriarUsuario />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
