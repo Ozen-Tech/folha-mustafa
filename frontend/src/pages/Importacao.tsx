@@ -7,13 +7,14 @@ type FieldKey =
   | 'cpf'
   | 'email'
   | 'dataAdmissao'
-  | 'funcao'
+  | 'cargo'
   | 'salario'
-  | 'chavePix'
-  | 'tipoVinculo'
+  | 'banco'
+  | 'agencia'
+  | 'conta'
   | 'valeTransporte';
 
-const REQUIRED: FieldKey[] = ['nome', 'cpf', 'dataAdmissao', 'salario'];
+const REQUIRED: FieldKey[] = ['nome', 'cpf', 'dataAdmissao', 'cargo', 'salario'];
 
 export default function Importacao() {
   const [file, setFile] = useState<File | null>(null);
@@ -24,8 +25,8 @@ export default function Importacao() {
   const [headers, setHeaders] = useState<unknown[]>([]);
   const [rows, setRows] = useState<unknown[][]>([]);
   const [mapping, setMapping] = useState<Record<FieldKey, string>>(() => ({
-    nome: '', cpf: '', email: '', dataAdmissao: '', funcao: '', salario: '',
-    chavePix: '', tipoVinculo: '', valeTransporte: '',
+    nome: '', cpf: '', email: '', dataAdmissao: '', cargo: '', salario: '',
+    banco: '', agencia: '', conta: '', valeTransporte: '',
   }));
 
   const [preview, setPreview] = useState<{ rows: any[]; errors: string[]; validCount: number } | null>(null);
@@ -52,9 +53,8 @@ export default function Importacao() {
       setIf('nome', 'nome', 'funcionario', 'funcionário');
       setIf('cpf', 'cpf');
       setIf('dataAdmissao', 'dataadmissao', 'data de admissão', 'admissao', 'admissão');
-      setIf('funcao', 'funcao', 'função', 'cargo');
+      setIf('cargo', 'cargo');
       setIf('salario', 'salario', 'salário', 'salariobase', 'salário base');
-      setIf('chavePix', 'chavepix', 'pix', 'chave pix');
       setStep('map');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no upload');
@@ -191,7 +191,7 @@ export default function Importacao() {
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={createDeptCargo} onChange={(e) => setCreateDeptCargo(e.currentTarget.checked)} />
-            Criar dados automaticamente se não existirem
+            Criar cargos automaticamente se não existirem
           </label>
 
           <div className="table-container" style={{ marginBottom: '1.25rem' }}>
@@ -200,7 +200,7 @@ export default function Importacao() {
                 <tr>
                   <th>Nome</th>
                   <th>CPF</th>
-                  <th>Função</th>
+                  <th>Cargo</th>
                   <th style={{ textAlign: 'right' }}>Salário</th>
                   <th>Erros</th>
                 </tr>
@@ -210,7 +210,7 @@ export default function Importacao() {
                   <tr key={idx}>
                     <td style={{ fontWeight: 500 }}>{r.nome}</td>
                     <td>{r.cpf}</td>
-                    <td>{r.funcao || '—'}</td>
+                    <td>{r.cargo}</td>
                     <td style={{ textAlign: 'right' }}>{Number(r.salario || 0).toFixed(2)}</td>
                     <td style={{ color: r._errors?.length ? 'var(--danger)' : 'var(--success)', fontSize: '0.875rem' }}>
                       {r._errors?.length ? r._errors.join(', ') : 'OK'}

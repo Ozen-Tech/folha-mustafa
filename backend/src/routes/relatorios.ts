@@ -34,7 +34,7 @@ router.get('/holerite/:folhaFuncionarioId/pdf', async (req, res) => {
   const ff = await prisma.folhaFuncionario.findUnique({
     where: { id: req.params.folhaFuncionarioId },
     include: {
-      funcionario: true,
+      funcionario: { include: { cargo: true } },
       folhaPagamento: { include: { competencia: true } },
       lancamentos: { include: { tipoLancamento: true } },
     },
@@ -52,10 +52,11 @@ router.get('/holerite/:folhaFuncionarioId/pdf', async (req, res) => {
   doc.moveDown(1);
   doc.text(`Funcionário: ${ff.funcionario.nome}`, 50, doc.y);
   doc.text(`CPF: ${ff.funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}`, 50, doc.y + 15);
-  doc.text(`Função: ${ff.funcionario.funcao || '—'}`, 50, doc.y + 30);
+  doc.text(`Cargo: ${ff.funcionario.cargo.nome}`, 50, doc.y + 30);
   doc.moveDown(2);
   doc.fontSize(11).text('Proventos', 50, doc.y);
   doc.moveDown(0.5);
+  let y = doc.y;
   for (const l of ff.lancamentos.filter((l) => l.tipoLancamento.tipo === 'provento')) {
     doc.fontSize(10).text(`${l.tipoLancamento.nome}: R$ ${l.valor.toFixed(2)}`, 60, doc.y);
     doc.y += 18;
@@ -86,7 +87,7 @@ router.get('/folha/:folhaId/export/excel', async (req, res) => {
       competencia: true,
       itens: {
         include: {
-          funcionario: true,
+          funcionario: { include: { cargo: true } },
           lancamentos: { include: { tipoLancamento: true } },
         },
       },
@@ -98,7 +99,7 @@ router.get('/folha/:folhaId/export/excel', async (req, res) => {
   sheet.columns = [
     { header: 'Nome', key: 'nome', width: 25 },
     { header: 'CPF', key: 'cpf', width: 14 },
-    { header: 'Função', key: 'funcao', width: 15 },
+    { header: 'Cargo', key: 'cargo', width: 15 },
     { header: 'Proventos', key: 'proventos', width: 12 },
     { header: 'Descontos', key: 'descontos', width: 12 },
     { header: 'Líquido', key: 'liquido', width: 12 },
@@ -108,7 +109,7 @@ router.get('/folha/:folhaId/export/excel', async (req, res) => {
     sheet.addRow({
       nome: item.funcionario.nome,
       cpf: item.funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'),
-      funcao: item.funcionario.funcao || '—',
+      cargo: item.funcionario.cargo.nome,
       proventos: item.totalProventos,
       descontos: item.totalDescontos,
       liquido: item.salarioLiquido,
