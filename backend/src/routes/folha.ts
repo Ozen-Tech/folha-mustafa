@@ -35,7 +35,9 @@ router.get('/folha/:competenciaId', async (req, res) => {
       competencia: true,
       itens: {
         include: {
-          funcionario: true,
+          funcionario: {
+            include: { cargo: { select: { nome: true } } },
+          },
           lancamentos: { include: { tipoLancamento: true } },
         },
       },
@@ -50,7 +52,9 @@ router.get('/folha/:competenciaId', async (req, res) => {
         competencia: true,
         itens: {
           include: {
-            funcionario: true,
+            funcionario: {
+              include: { cargo: { select: { nome: true } } },
+            },
             lancamentos: { include: { tipoLancamento: true } },
           },
         },
@@ -67,7 +71,7 @@ router.post('/folha/:competenciaId/gerar', async (req, res) => {
   if (!folha) {
     folha = await prisma.folhaPagamento.create({ data: { competenciaId: competencia.id } });
   }
-  const funcionarios = await prisma.funcionario.findMany({ where: { ativo: true } });
+  const funcionarios = await prisma.funcionario.findMany({ where: { ativo: true }, include: { cargo: true } });
   const tipoSalario = await prisma.tipoLancamento.findUnique({ where: { codigo: 'SALARIO' } });
   if (!tipoSalario) return res.status(500).json({ error: 'Tipo SALARIO não configurado' });
   for (const f of funcionarios) {
@@ -79,21 +83,21 @@ router.post('/folha/:competenciaId/gerar', async (req, res) => {
       data: {
         folhaPagamentoId: folha.id,
         funcionarioId: f.id,
-        salarioBruto: f.salario,
-        totalProventos: f.salario,
+        salarioBruto: f.cargo.salarioBase,
+        totalProventos: f.cargo.salarioBase,
         totalDescontos: 0,
-        baseInss: f.salario,
-        baseIrrf: f.salario,
+        baseInss: f.cargo.salarioBase,
+        baseIrrf: f.cargo.salarioBase,
         valorInss: 0,
         valorIrrf: 0,
-        salarioLiquido: f.salario,
+        salarioLiquido: f.cargo.salarioBase,
       },
     });
     await prisma.lancamento.create({
       data: {
         folhaFuncionarioId: ff.id,
         tipoLancamentoId: tipoSalario.id,
-        valor: f.salario,
+        valor: f.cargo.salarioBase,
         referencia: 'Salário base',
       },
     });
@@ -105,7 +109,9 @@ router.post('/folha/:competenciaId/gerar', async (req, res) => {
       competencia: true,
       itens: {
         include: {
-          funcionario: true,
+          funcionario: {
+            include: { cargo: { select: { nome: true } } },
+          },
           lancamentos: { include: { tipoLancamento: true } },
         },
       },
@@ -118,7 +124,7 @@ router.get('/folha-item/:folhaFuncionarioId', async (req, res) => {
   const item = await prisma.folhaFuncionario.findUnique({
     where: { id: req.params.folhaFuncionarioId },
     include: {
-      funcionario: true,
+      funcionario: { include: { cargo: true } },
       folhaPagamento: { include: { competencia: true } },
       lancamentos: { include: { tipoLancamento: true } },
     },

@@ -376,33 +376,6 @@ button {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-.form-container {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
-  box-shadow: var(--shadow);
-}
-
-.alert {
-  padding: 0.875rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.alert-error {
-  background: var(--danger-light);
-  color: var(--danger);
-  border: 1px solid var(--danger);
 }
 
 /* Modal */

@@ -3,7 +3,20 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export type ColumnMapping = Record<string, string>;
+export type ColumnMapping = Record<string, string>; // excel column letter/index -> our field key
+
+const DEFAULT_FIELDS = [
+  'nome',
+  'cpf',
+  'email',
+  'dataAdmissao',
+  'cargo',
+  'salario',
+  'banco',
+  'agencia',
+  'conta',
+  'valeTransporte',
+] as const;
 
 export function parseExcelBuffer(buffer: Buffer): { sheets: string[]; rows: Record<string, unknown[][]> } {
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
@@ -36,10 +49,11 @@ export interface ImportRow {
   cpf: string;
   email?: string;
   dataAdmissao: Date | null;
-  funcao: string;
+  cargo: string;
   salario: number;
-  chavePix?: string;
-  tipoVinculo?: string;
+  banco?: string;
+  agencia?: string;
+  conta?: string;
   valeTransporte: boolean;
   _raw: Record<string, unknown>;
   _errors: string[];
@@ -74,7 +88,8 @@ export function mapRow(
   if (salario < 0) errors.push('Salário inválido');
   const dataAdmissao = parseDate(get('dataAdmissao'));
   if (!dataAdmissao) errors.push('Data de admissão inválida');
-  const funcao = String(get('funcao') ?? '').trim();
+  const cargo = String(get('cargo') ?? '').trim();
+  if (!cargo) errors.push('Cargo obrigatório');
   const raw: Record<string, unknown> = {};
   headerRow.forEach((h, i) => {
     if (row[i] !== undefined && row[i] !== '') raw[String(h)] = row[i];
@@ -84,10 +99,11 @@ export function mapRow(
     cpf,
     email: String(get('email') ?? '').trim() || undefined,
     dataAdmissao,
-    funcao,
+    cargo,
     salario,
-    chavePix: String(get('chavePix') ?? '').trim() || undefined,
-    tipoVinculo: String(get('tipoVinculo') ?? '').trim() || undefined,
+    banco: String(get('banco') ?? '').trim() || undefined,
+    agencia: String(get('agencia') ?? '').trim() || undefined,
+    conta: String(get('conta') ?? '').trim() || undefined,
     valeTransporte: /^(1|true|sim|s|x)$/i.test(String(get('valeTransporte') ?? '')),
     _raw: raw,
     _errors: errors,
@@ -113,27 +129,46 @@ export function previewImport(
 }
 
 export async function applyImport(
-  _sheetName: string,
+  sheetName: string,
   importRows: ImportRow[],
-  _createDeptCargo: boolean
+  createDeptCargo: boolean
 ): Promise<{ created: number; updated: number; errors: string[] }> {
   const created = { count: 0 };
   const updated = { count: 0 };
   const errors: string[] = [];
   const validRows = importRows.filter((r) => r._errors.length === 0);
+  const cargoCache = new Map<string, string>();
 
   for (const row of validRows) {
     try {
+      let cargoId = cargoCache.get(row.cargo);
+      if (!cargoId && row.cargo) {
+        let cargo = await prisma.cargo.findFirst({ where: { nome: row.cargo } });
+        if (!cargo && createDeptCargo) {
+          cargo = await prisma.cargo.create({ data: { nome: row.cargo, salarioBase: row.salario } });
+        } else if (!cargo) {
+          cargo = await prisma.cargo.create({ data: { nome: row.cargo, salarioBase: row.salario } });
+        }
+        if (cargo) {
+          cargoId = cargo.id;
+          cargoCache.set(row.cargo, cargo.id);
+        }
+      }
+      if (!cargoId) {
+        errors.push(`${row.nome}: cargo "${row.cargo}" não encontrado`);
+        continue;
+      }
+
       const existing = await prisma.funcionario.findUnique({ where: { cpf: row.cpf } });
       const data = {
         nome: row.nome,
         cpf: row.cpf,
         email: row.email ?? null,
         dataAdmissao: row.dataAdmissao!,
-        salario: row.salario,
-        funcao: row.funcao || null,
-        chavePix: row.chavePix ?? null,
-        tipoVinculo: row.tipoVinculo || 'CLT',
+        cargoId,
+        banco: row.banco ?? null,
+        agencia: row.agencia ?? null,
+        conta: row.conta ?? null,
         valeTransporte: row.valeTransporte,
       };
       if (existing) {

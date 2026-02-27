@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { funcionarios, type Funcionario } from '../api';
 import { Plus, Search } from 'lucide-react';
 
-const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-
 export default function Funcionarios() {
   const [list, setList] = useState<Funcionario[]>([]);
   const [filtro, setFiltro] = useState({ q: '', ativo: true });
@@ -27,7 +25,7 @@ export default function Funcionarios() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Funcionários</h1>
-          <p className="page-subtitle">Gerencie o cadastro de colaboradores e promotores</p>
+          <p className="page-subtitle">Gerencie o cadastro de colaboradores</p>
         </div>
         <Link to="/funcionarios/novo" className="btn-primary">
           <Plus size={18} />
@@ -66,9 +64,8 @@ export default function Funcionarios() {
               <tr>
                 <th>Nome</th>
                 <th>CPF</th>
-                <th>Função</th>
-                <th>Vínculo</th>
-                <th style={{ textAlign: 'right' }}>Salário</th>
+                <th>Cargo</th>
+                <th style={{ textAlign: 'right' }}>Salário base</th>
                 <th style={{ width: 100 }}></th>
               </tr>
             </thead>
@@ -77,34 +74,18 @@ export default function Funcionarios() {
                 <tr key={f.id}>
                   <td style={{ fontWeight: 500 }}>{f.nome}</td>
                   <td>{formatCpf(f.cpf)}</td>
-                  <td>{f.funcao || '—'}</td>
-                  <td>
-                    <span style={{
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.8125rem',
-                      fontWeight: 600,
-                      background: f.tipoVinculo === 'PJ' ? 'var(--accent-light)' : 'var(--success-light)',
-                      color: f.tipoVinculo === 'PJ' ? 'var(--accent)' : 'var(--success)',
-                    }}>
-                      {f.tipoVinculo}
-                    </span>
+                  <td>{f.cargo?.nome ?? '—'}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {f.cargo?.salarioBase != null ? 'R$ ' + f.cargo.salarioBase.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—'}
                   </td>
-                  <td style={{ textAlign: 'right' }}>{brl.format(f.salario)}</td>
                   <td>
-                    <Link to={`/funcionarios/${f.id}`} className="link-btn">Editar</Link>
-                    {' '}
-                    <Link to={`/funcionarios/${f.id}/detalhe`} className="link-btn">Ver</Link>
+                    <Link to={'/funcionarios/' + f.id} className="link-btn">Editar</Link>
                   </td>
                 </tr>
               ))}
-              {list.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="empty-state">Nenhum funcionário encontrado.</td>
-                </tr>
-              )}
             </tbody>
           </table>
+          {list.length === 0 && <div className="empty-state">Nenhum funcionário encontrado.</div>}
         </div>
       )}
     </div>
