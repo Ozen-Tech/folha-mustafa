@@ -1,11 +1,14 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, FileSpreadsheet, Upload, UserPlus, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CalendarOff, Palmtree, FileSpreadsheet, DollarSign, Upload, UserPlus, LogOut } from 'lucide-react';
 
 const navItems = [
   { to: '/', end: true, label: 'Início', icon: LayoutDashboard },
   { to: '/funcionarios', label: 'Funcionários', icon: Users },
-  { to: '/cargos', label: 'Cargos', icon: Briefcase },
+  { to: '/contratos', label: 'Contratos', icon: FileText },
+  { to: '/distratos', label: 'Distratos', icon: CalendarOff },
+  { to: '/ferias', label: 'Férias', icon: Palmtree },
   { to: '/folha', label: 'Folha de pagamento', icon: FileSpreadsheet },
+  { to: '/pagamentos', label: 'Pagamentos', icon: DollarSign },
   { to: '/importar', label: 'Importar Excel', icon: Upload },
   { to: '/usuarios/novo', label: 'Criar Usuário', icon: UserPlus },
 ];
@@ -25,7 +28,7 @@ export default function Layout() {
       <header className="app-header" style={{ justifyContent: 'space-between' }}>
         <div className="header-brand">
           <span className="brand-logo">Mustafá</span>
-          <span className="brand-sublabel">Folha de Pagamento</span>
+          <span className="brand-sublabel">Gestão de Pessoal</span>
         </div>
         <button
           onClick={handleLogout}
