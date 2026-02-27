@@ -24,7 +24,6 @@ router.get('/', async (req, res) => {
   const list = await prisma.funcionario.findMany({
     where,
     orderBy: { nome: 'asc' },
-    include: { cargo: { select: { id: true, nome: true, salarioBase: true } } },
   });
   return res.json(list);
 });
@@ -32,16 +31,16 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const f = await prisma.funcionario.findUnique({
     where: { id: req.params.id },
-    include: { cargo: true },
+    include: { contratos: true, distratos: true, ferias: true },
   });
   if (!f) return res.status(404).json({ error: 'Funcionário não encontrado' });
   return res.json(f);
 });
 
 router.post('/', async (req, res) => {
-  const { nome, cpf, email, dataAdmissao, cargoId, banco, agencia, conta, valeTransporte } = req.body;
-  if (!nome || !cpf || !dataAdmissao || !cargoId) {
-    return res.status(400).json({ error: 'Nome, CPF, data de admissão e cargo são obrigatórios' });
+  const { nome, cpf, email, dataAdmissao, salario, funcao, chavePix, tipoVinculo, cidade, estado, loja, supervisor, valeTransporte, ajudaCusto, valorAjudaCusto } = req.body;
+  if (!nome || !cpf || !dataAdmissao) {
+    return res.status(400).json({ error: 'Nome, CPF e data de admissão são obrigatórios' });
   }
   const cpfClean = formatCpf(cpf);
   if (cpfClean.length !== 11) return res.status(400).json({ error: 'CPF inválido' });
@@ -53,13 +52,18 @@ router.post('/', async (req, res) => {
       cpf: cpfClean,
       email: email || null,
       dataAdmissao: new Date(dataAdmissao),
-      cargoId,
-      banco: banco || null,
-      agencia: agencia || null,
-      conta: conta || null,
+      salario: Number(salario) || 0,
+      funcao: funcao || null,
+      chavePix: chavePix || null,
+      tipoVinculo: tipoVinculo || 'CLT',
+      cidade: cidade || null,
+      estado: estado || null,
+      loja: loja || null,
+      supervisor: supervisor || null,
       valeTransporte: Boolean(valeTransporte),
+      ajudaCusto: Boolean(ajudaCusto),
+      valorAjudaCusto: Number(valorAjudaCusto) || 0,
     },
-    include: { cargo: { select: { id: true, nome: true, salarioBase: true } } },
   });
   return res.status(201).json(created);
 });
@@ -68,6 +72,7 @@ router.patch('/:id', async (req, res) => {
   const body = req.body;
   if (body.cpf) body.cpf = formatCpf(body.cpf);
   if (body.dataAdmissao) body.dataAdmissao = new Date(body.dataAdmissao);
+  if (body.salario != null) body.salario = Number(body.salario);
   const updated = await prisma.funcionario.update({
     where: { id: req.params.id },
     data: {
@@ -76,13 +81,18 @@ router.patch('/:id', async (req, res) => {
       ...(body.email !== undefined && { email: body.email }),
       ...(body.dataAdmissao != null && { dataAdmissao: body.dataAdmissao }),
       ...(body.ativo !== undefined && { ativo: body.ativo }),
-      ...(body.cargoId != null && { cargoId: body.cargoId }),
-      ...(body.banco !== undefined && { banco: body.banco }),
-      ...(body.agencia !== undefined && { agencia: body.agencia }),
-      ...(body.conta !== undefined && { conta: body.conta }),
+      ...(body.salario != null && { salario: body.salario }),
+      ...(body.funcao !== undefined && { funcao: body.funcao }),
+      ...(body.chavePix !== undefined && { chavePix: body.chavePix }),
+      ...(body.tipoVinculo !== undefined && { tipoVinculo: body.tipoVinculo }),
+      ...(body.cidade !== undefined && { cidade: body.cidade }),
+      ...(body.estado !== undefined && { estado: body.estado }),
+      ...(body.loja !== undefined && { loja: body.loja }),
+      ...(body.supervisor !== undefined && { supervisor: body.supervisor }),
       ...(body.valeTransporte !== undefined && { valeTransporte: body.valeTransporte }),
+      ...(body.ajudaCusto !== undefined && { ajudaCusto: body.ajudaCusto }),
+      ...(body.valorAjudaCusto !== undefined && { valorAjudaCusto: Number(body.valorAjudaCusto) }),
     },
-    include: { cargo: { select: { id: true, nome: true, salarioBase: true } } },
   });
   return res.json(updated);
 });

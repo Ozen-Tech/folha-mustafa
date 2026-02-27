@@ -15,13 +15,6 @@ model User {
   createdAt DateTime @default(now())
 }
 
-model Cargo {
-  id           String        @id @default(cuid())
-  nome         String
-  salarioBase  Float         @default(0)
-  funcionarios Funcionario[]
-}
-
 model Funcionario {
   id             String           @id @default(cuid())
   nome           String
@@ -29,16 +22,63 @@ model Funcionario {
   email          String?
   dataAdmissao   DateTime
   ativo          Boolean          @default(true)
-  cargoId        String
-  banco          String?
-  agencia        String?
-  conta          String?
+  salario        Float            @default(0)
+  funcao         String?
+  chavePix       String?
+  tipoVinculo    String           @default("CLT")
+  cidade         String?
+  estado         String?
+  loja           String?
+  supervisor     String?
   valeTransporte Boolean          @default(false)
+  ajudaCusto     Boolean          @default(false)
+  valorAjudaCusto Float           @default(0)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  cargo        Cargo         @relation(fields: [cargoId], references: [id], onDelete: Restrict)
-  folhas       FolhaFuncionario[]
+  folhas     FolhaFuncionario[]
+  contratos  Contrato[]
+  distratos  Distrato[]
+  ferias     Ferias[]
+}
+
+model Contrato {
+  id              String   @id @default(cuid())
+  funcionarioId   String
+  descricao       String?
+  dataInicio      DateTime
+  dataVencimento  DateTime
+  loja            String?
+  cidade          String?
+  estado          String?
+  supervisor      String?
+  arquivoPdf      String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+}
+
+model Distrato {
+  id              String   @id @default(cuid())
+  funcionarioId   String
+  descricao       String?
+  dataDistrato    DateTime
+  motivo          String?
+  createdAt       DateTime @default(now())
+
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+}
+
+model Ferias {
+  id              String   @id @default(cuid())
+  funcionarioId   String
+  dataInicio      DateTime
+  dataFim         DateTime
+  observacao      String?
+  createdAt       DateTime @default(now())
+
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
 }
 
 model Competencia {
@@ -78,14 +118,15 @@ model FolhaFuncionario {
 
   folhaPagamento FolhaPagamento @relation(fields: [folhaPagamentoId], references: [id], onDelete: Cascade)
   funcionario    Funcionario    @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
-  lancamentos   Lancamento[]
+  lancamentos    Lancamento[]
+  pagamentos     Pagamento[]
 }
 
 model TipoLancamento {
-  id        String   @id @default(cuid())
-  codigo    String   @unique
-  nome      String
-  tipo      String   // "provento" | "desconto"
+  id         String   @id @default(cuid())
+  codigo     String   @unique
+  nome       String
+  tipo       String
   incideInss Boolean  @default(true)
   incideIrrf Boolean  @default(true)
   lancamentos Lancamento[]
@@ -96,17 +137,27 @@ model Lancamento {
   folhaFuncionarioId String
   tipoLancamentoId   String
   valor              Float
-  referencia         String?  // ex: "Horas extras", "Falta dia 15"
+  referencia         String?
 
   folhaFuncionario FolhaFuncionario @relation(fields: [folhaFuncionarioId], references: [id], onDelete: Cascade)
   tipoLancamento   TipoLancamento   @relation(fields: [tipoLancamentoId], references: [id], onDelete: Restrict)
 }
 
+model Pagamento {
+  id                 String    @id @default(cuid())
+  folhaFuncionarioId String
+  dataPagamento      DateTime?
+  pago               Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  folhaFuncionario FolhaFuncionario @relation(fields: [folhaFuncionarioId], references: [id], onDelete: Cascade)
+}
+
 model ParametroFolha {
-  id          String   @id @default(cuid())
-  ano         Int
-  descricao   String
-  tipo        String   // "inss" | "irrf"
-  faixas      String   // JSON: [{ ate: number, aliquota: number, deducao?: number }]
+  id        String @id @default(cuid())
+  ano       Int
+  descricao String
+  tipo      String
+  faixas    String
   @@unique([ano, tipo])
 }
