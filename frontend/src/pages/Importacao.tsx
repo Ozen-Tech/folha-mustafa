@@ -5,13 +5,21 @@ import { Upload, FileSpreadsheet, ArrowRight, CheckCircle } from 'lucide-react';
 type FieldKey =
   | 'nome'
   | 'cpf'
-  | 'email'
   | 'dataAdmissao'
-  | 'funcao'
   | 'salario'
   | 'chavePix'
   | 'tipoVinculo'
-  | 'valeTransporte';
+  | 'ajudaCusto';
+
+const FIELD_LABELS: Record<FieldKey, string> = {
+  nome: 'Nome',
+  cpf: 'CPF/CNPJ',
+  dataAdmissao: 'Data Contratação',
+  salario: 'Pagamento',
+  chavePix: 'PIX',
+  tipoVinculo: 'CLT/Contrato',
+  ajudaCusto: 'Ajuda de Custo',
+};
 
 const REQUIRED: FieldKey[] = ['nome', 'cpf', 'dataAdmissao', 'salario'];
 
@@ -24,8 +32,8 @@ export default function Importacao() {
   const [headers, setHeaders] = useState<unknown[]>([]);
   const [rows, setRows] = useState<unknown[][]>([]);
   const [mapping, setMapping] = useState<Record<FieldKey, string>>(() => ({
-    nome: '', cpf: '', email: '', dataAdmissao: '', funcao: '', salario: '',
-    chavePix: '', tipoVinculo: '', valeTransporte: '',
+    nome: '', cpf: '', dataAdmissao: '', salario: '',
+    chavePix: '', tipoVinculo: '', ajudaCusto: '',
   }));
 
   const [preview, setPreview] = useState<{ rows: any[]; errors: string[]; validCount: number } | null>(null);
@@ -33,6 +41,10 @@ export default function Importacao() {
   const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
 
   const headerOptions = useMemo(() => headers.map((h) => String(h)), [headers]);
+
+  function normalize(s: string): string {
+    return s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
 
   async function handleUpload() {
     if (!file) return;
@@ -42,19 +54,24 @@ export default function Importacao() {
       const data = await importacao.upload(file);
       setHeaders(data.headers);
       setRows(data.rows);
-      const lower = (data.headers as unknown[]).map((h) => String(h).toLowerCase().trim());
+      const normalized = (data.headers as unknown[]).map((h) => normalize(String(h)));
+      
       const setIf = (key: FieldKey, ...candidates: string[]) => {
-        const idx = lower.findIndex((h) => candidates.some((c) => c.toLowerCase() === h));
+        const idx = normalized.findIndex((h) => candidates.some((c) => h.includes(normalize(c))));
         if (idx >= 0) {
           setMapping((m) => ({ ...m, [key]: String(data.headers[idx]) }));
         }
       };
-      setIf('nome', 'nome', 'funcionario', 'funcionário');
-      setIf('cpf', 'cpf');
-      setIf('dataAdmissao', 'dataadmissao', 'data de admissão', 'admissao', 'admissão');
-      setIf('funcao', 'funcao', 'função', 'cargo');
-      setIf('salario', 'salario', 'salário', 'salariobase', 'salário base');
-      setIf('chavePix', 'chavepix', 'pix', 'chave pix');
+      
+      // Auto-mapeia baseado na estrutura da planilha do Mustafá
+      setIf('nome', 'nome promotor', 'nome', 'funcionario', 'colaborador');
+      setIf('cpf', 'cpf x cnpj', 'cpf', 'cnpj', 'documento');
+      setIf('dataAdmissao', 'data de contratacao', 'data contratacao', 'admissao');
+      setIf('salario', 'pagamento', 'salario', 'valor', 'remuneracao');
+      setIf('chavePix', 'pix', 'chave pix', 'chavepix');
+      setIf('tipoVinculo', 'clt x contrato', 'clt', 'vinculo', 'tipo');
+      setIf('ajudaCusto', 'ajuda de custo', 'ajuda custo', 'auxilio');
+      
       setStep('map');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no upload');
@@ -133,13 +150,13 @@ export default function Importacao() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {(Object.keys(mapping) as FieldKey[]).map((k) => (
               <div key={k}>
-                <label className="form-label">{k} {REQUIRED.includes(k) ? '*' : ''}</label>
+                <label className="form-label">{FIELD_LABELS[k]} {REQUIRED.includes(k) ? '*' : ''}</label>
                 <select
                   value={mapping[k]}
                   onChange={(e) => setMapping((m) => ({ ...m, [k]: e.target.value }))}
                   className="input-field"
                 >
-                  <option value="">(não mapear)</option>
+                  <option value="">(automático)</option>
                   {headerOptions.map((h) => (
                     <option key={h} value={h}>{h}</option>
                   ))}
@@ -194,25 +211,40 @@ export default function Importacao() {
             Criar dados automaticamente se não existirem
           </label>
 
-          <div className="table-container" style={{ marginBottom: '1.25rem' }}>
+          <div className="table-container" style={{ marginBottom: '1.25rem', overflowX: 'auto' }}>
             <table>
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>CPF</th>
-                  <th>Função</th>
+                  <th>CPF/CNPJ</th>
+                  <th>Vínculo</th>
                   <th style={{ textAlign: 'right' }}>Salário</th>
-                  <th>Erros</th>
+                  <th style={{ textAlign: 'right' }}>Ajuda Custo</th>
+                  <th>PIX</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {preview.rows.slice(0, 20).map((r, idx) => (
-                  <tr key={idx}>
-                    <td style={{ fontWeight: 500 }}>{r.nome}</td>
-                    <td>{r.cpf}</td>
-                    <td>{r.funcao || '—'}</td>
-                    <td style={{ textAlign: 'right' }}>{Number(r.salario || 0).toFixed(2)}</td>
-                    <td style={{ color: r._errors?.length ? 'var(--danger)' : 'var(--success)', fontSize: '0.875rem' }}>
+                {preview.rows.slice(0, 30).map((r, idx) => (
+                  <tr key={idx} style={{ background: r._errors?.length ? 'var(--danger-light)' : undefined }}>
+                    <td style={{ fontWeight: 500 }}>{r.nome || '—'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{r.cpf || '—'}</td>
+                    <td>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: r.tipoVinculo === 'CLT' ? 'var(--success-light)' : 'var(--accent-light)',
+                        color: r.tipoVinculo === 'CLT' ? 'var(--success)' : 'var(--accent)',
+                      }}>
+                        {r.tipoVinculo || 'CONTRATO'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>R$ {Number(r.salario || 0).toFixed(2)}</td>
+                    <td style={{ textAlign: 'right' }}>{r.valorAjudaCusto > 0 ? `R$ ${Number(r.valorAjudaCusto).toFixed(2)}` : '—'}</td>
+                    <td style={{ fontSize: '0.8125rem', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.chavePix || '—'}</td>
+                    <td style={{ color: r._errors?.length ? 'var(--danger)' : 'var(--success)', fontSize: '0.8125rem', fontWeight: 500 }}>
                       {r._errors?.length ? r._errors.join(', ') : 'OK'}
                     </td>
                   </tr>

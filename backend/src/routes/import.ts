@@ -73,7 +73,8 @@ router.post('/preview', (req, res) => {
       salario: r.salario,
       chavePix: r.chavePix,
       tipoVinculo: r.tipoVinculo,
-      valeTransporte: r.valeTransporte,
+      ajudaCusto: r.ajudaCusto,
+      valorAjudaCusto: r.valorAjudaCusto,
       _errors: r._errors,
     })),
   });

@@ -38,7 +38,7 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { nome, cpf, email, dataAdmissao, salario, funcao, chavePix, tipoVinculo, cidade, estado, loja, supervisor, valeTransporte, ajudaCusto, valorAjudaCusto } = req.body;
+  const { nome, cpf, email, dataAdmissao, salario, funcao, chavePix, tipoVinculo, cidade, estado, loja, supervisor, valeTransporte, ajudaCusto, valorAjudaCusto, descontoInss, descontoIrrf, descontosAtivos, dependentesIrrf } = req.body;
   if (!nome || !cpf || !dataAdmissao) {
     return res.status(400).json({ error: 'Nome, CPF e data de admissão são obrigatórios' });
   }
@@ -63,6 +63,10 @@ router.post('/', async (req, res) => {
       valeTransporte: Boolean(valeTransporte),
       ajudaCusto: Boolean(ajudaCusto),
       valorAjudaCusto: Number(valorAjudaCusto) || 0,
+      descontoInss: Boolean(descontoInss) || false,
+      descontoIrrf: Boolean(descontoIrrf) || false,
+      descontosAtivos: Boolean(descontosAtivos) || false,
+      dependentesIrrf: Number(dependentesIrrf) || 0,
     },
   });
   return res.status(201).json(created);
@@ -92,6 +96,10 @@ router.patch('/:id', async (req, res) => {
       ...(body.valeTransporte !== undefined && { valeTransporte: body.valeTransporte }),
       ...(body.ajudaCusto !== undefined && { ajudaCusto: body.ajudaCusto }),
       ...(body.valorAjudaCusto !== undefined && { valorAjudaCusto: Number(body.valorAjudaCusto) }),
+      ...(body.descontoInss !== undefined && { descontoInss: body.descontoInss }),
+      ...(body.descontoIrrf !== undefined && { descontoIrrf: body.descontoIrrf }),
+      ...(body.descontosAtivos !== undefined && { descontosAtivos: body.descontosAtivos }),
+      ...(body.dependentesIrrf !== undefined && { dependentesIrrf: Number(body.dependentesIrrf) }),
     },
   });
   return res.json(updated);
@@ -100,6 +108,57 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   await prisma.funcionario.delete({ where: { id: req.params.id } });
   return res.status(204).send();
+});
+
+router.post('/bulk/delete', async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Lista de IDs é obrigatória' });
+  }
+  const result = await prisma.funcionario.deleteMany({
+    where: { id: { in: ids } },
+  });
+  return res.json({ deleted: result.count });
+});
+
+router.post('/bulk/update-salary', async (req, res) => {
+  const { ids, salario, tipo, valor } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Lista de IDs é obrigatória' });
+  }
+
+  let updated = 0;
+
+  if (tipo === 'fixo' && salario != null) {
+    const result = await prisma.funcionario.updateMany({
+      where: { id: { in: ids } },
+      data: { salario: Number(salario) },
+    });
+    updated = result.count;
+  } else if (tipo === 'percentual' && valor != null) {
+    const funcionariosToUpdate = await prisma.funcionario.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, salario: true },
+    });
+    for (const f of funcionariosToUpdate) {
+      const novoSalario = Math.round((f.salario * (1 + Number(valor) / 100)) * 100) / 100;
+      await prisma.funcionario.update({
+        where: { id: f.id },
+        data: { salario: novoSalario },
+      });
+      updated++;
+    }
+  } else if (tipo === 'acrescimo' && valor != null) {
+    const result = await prisma.funcionario.updateMany({
+      where: { id: { in: ids } },
+      data: { salario: { increment: Number(valor) } },
+    });
+    updated = result.count;
+  } else {
+    return res.status(400).json({ error: 'Tipo de alteração inválido ou valor não informado' });
+  }
+
+  return res.json({ updated });
 });
 
 export { router as funcionariosRouter };

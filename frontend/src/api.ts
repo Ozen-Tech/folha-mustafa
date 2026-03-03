@@ -72,6 +72,10 @@ export type Funcionario = {
   valeTransporte: boolean;
   ajudaCusto: boolean;
   valorAjudaCusto: number;
+  descontoInss: boolean;
+  descontoIrrf: boolean;
+  descontosAtivos: boolean;
+  dependentesIrrf: number;
   contratos?: Contrato[];
   distratos?: Distrato[];
   ferias?: FeriasType[];
@@ -90,6 +94,9 @@ export const funcionarios = {
     api<Funcionario>('/funcionarios', { method: 'POST', body: data }),
   update: (id: string, data: Partial<Funcionario>) => api<Funcionario>('/funcionarios/' + id, { method: 'PATCH', body: data }),
   delete: (id: string) => api('/funcionarios/' + id, { method: 'DELETE' }),
+  bulkDelete: (ids: string[]) => api<{ deleted: number }>('/funcionarios/bulk/delete', { method: 'POST', body: { ids } }),
+  bulkUpdateSalary: (ids: string[], params: { tipo: 'fixo' | 'percentual' | 'acrescimo'; salario?: number; valor?: number }) =>
+    api<{ updated: number }>('/funcionarios/bulk/update-salary', { method: 'POST', body: { ids, ...params } }),
 };
 
 export type Contrato = {
