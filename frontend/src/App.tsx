@@ -5,15 +5,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Funcionarios from './pages/Funcionarios';
 import FuncionarioForm from './pages/FuncionarioForm';
-import FuncionarioDetalhe from './pages/FuncionarioDetalhe';
-import Contratos from './pages/Contratos';
-import Distratos from './pages/Distratos';
-import Ferias from './pages/Ferias';
+import Cargos from './pages/Cargos';
 import Importacao from './pages/Importacao';
 import Folha from './pages/Folha';
 import FolhaDetalhe from './pages/FolhaDetalhe';
-import CriarUsuario from './pages/CriarUsuario';
-import Pagamentos from './pages/Pagamentos';
 import { auth } from './api';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -52,15 +47,10 @@ export default function App() {
         <Route path="funcionarios" element={<Funcionarios />} />
         <Route path="funcionarios/novo" element={<FuncionarioForm />} />
         <Route path="funcionarios/:id" element={<FuncionarioForm />} />
-        <Route path="funcionarios/:id/detalhe" element={<FuncionarioDetalhe />} />
-        <Route path="contratos" element={<Contratos />} />
-        <Route path="distratos" element={<Distratos />} />
-        <Route path="ferias" element={<Ferias />} />
+        <Route path="cargos" element={<Cargos />} />
         <Route path="importar" element={<Importacao />} />
         <Route path="folha" element={<Folha />} />
         <Route path="folha/:competenciaId" element={<FolhaDetalhe />} />
-        <Route path="usuarios/novo" element={<CriarUsuario />} />
-        <Route path="pagamentos" element={<Pagamentos />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
