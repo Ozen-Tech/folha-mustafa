@@ -172,7 +172,7 @@ export default function FolhaDetalhe() {
                 <thead>
                   <tr>
                     <th>Funcionário</th>
-                    <th>Função</th>
+                    <th>Cargo</th>
                     <th style={{ textAlign: 'right' }}>Proventos</th>
                     <th style={{ textAlign: 'right' }}>Descontos</th>
                     <th style={{ textAlign: 'right' }}>Líquido</th>
@@ -183,7 +183,7 @@ export default function FolhaDetalhe() {
                   {(data?.itens ?? []).map((i) => (
                     <tr key={i.id}>
                       <td style={{ fontWeight: 500 }}>{i.funcionario.nome}</td>
-                      <td>{i.funcionario.funcao ?? '—'}</td>
+                      <td>{i.funcionario.cargo?.nome ?? '—'}</td>
                       <td style={{ textAlign: 'right' }}>{brl.format(i.totalProventos)}</td>
                       <td style={{ textAlign: 'right' }}>{brl.format(i.totalDescontos)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 500 }}>{brl.format(i.salarioLiquido)}</td>
@@ -214,7 +214,7 @@ export default function FolhaDetalhe() {
           ) : (
             <>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                {selected.funcionario?.nome} — {selected.funcionario?.funcao || 'Sem função'}
+                {selected.funcionario?.nome} — {selected.funcionario?.cargo?.nome}
               </p>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 <div>

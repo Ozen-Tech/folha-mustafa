@@ -21,7 +21,7 @@ const FIELD_LABELS: Record<FieldKey, string> = {
   ajudaCusto: 'Ajuda de Custo',
 };
 
-const REQUIRED: FieldKey[] = ['nome', 'cpf', 'dataAdmissao', 'salario'];
+const REQUIRED: FieldKey[] = ['nome', 'cpf', 'dataAdmissao', 'cargo', 'salario'];
 
 export default function Importacao() {
   const [file, setFile] = useState<File | null>(null);
@@ -208,7 +208,7 @@ export default function Importacao() {
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={createDeptCargo} onChange={(e) => setCreateDeptCargo(e.currentTarget.checked)} />
-            Criar dados automaticamente se não existirem
+            Criar cargos automaticamente se não existirem
           </label>
 
           <div className="table-container" style={{ marginBottom: '1.25rem', overflowX: 'auto' }}>
