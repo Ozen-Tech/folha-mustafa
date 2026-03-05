@@ -30,47 +30,18 @@ export function parseExcelBuffer(buffer: Buffer): { sheets: string[]; rows: Reco
   return { sheets, rows };
 }
 
-function cleanCpfCnpj(value: unknown): string {
-  const s = String(value ?? '').trim();
-  if (!s || s === '−' || s === '-') return '';
-  const digits = s.replace(/\D/g, '');
-  if (digits.length === 11 || digits.length === 14) return digits;
-  return '';
+function cleanCpf(value: unknown): string {
+  const s = String(value ?? '').replace(/\D/g, '');
+  return s.length === 11 ? s : String(value ?? '');
 }
 
 function parseDate(value: unknown): Date | null {
   if (value instanceof Date) return value;
-  if (typeof value === 'number' && value > 0) {
-    return new Date((value - 25569) * 86400 * 1000);
-  }
+  if (typeof value === 'number' && value > 0) return new Date((value - 25569) * 86400 * 1000);
   const s = String(value ?? '').trim();
-  if (!s || s === '−' || s === '-') return null;
-  
-  // Tenta formato MM/DD/YYYY (americano)
-  const partsSlash = s.split('/');
-  if (partsSlash.length === 3) {
-    const [m, d, y] = partsSlash.map(Number);
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1900) {
-      return new Date(y, m - 1, d);
-    }
-  }
-  
+  if (!s) return null;
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
-}
-
-function parseCurrency(value: unknown): number {
-  if (typeof value === 'number') return value;
-  const s = String(value ?? '').trim();
-  if (!s || s === '−' || s === '-') return 0;
-  // Remove "R$", espaços e trata vírgula como decimal
-  const cleaned = s.replace(/R\$\s*/gi, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : Math.abs(num);
-}
-
-function normalizeHeader(h: string): string {
-  return String(h ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 export interface ImportRow {
@@ -80,35 +51,12 @@ export interface ImportRow {
   dataAdmissao: Date | null;
   cargo: string;
   salario: number;
-  chavePix?: string;
-  tipoVinculo?: string;
-  ajudaCusto: boolean;
-  valorAjudaCusto: number;
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  valeTransporte: boolean;
   _raw: Record<string, unknown>;
   _errors: string[];
-}
-
-const HEADER_ALIASES: Record<string, string[]> = {
-  nome: ['nome promotor', 'nome', 'funcionario', 'colaborador', 'promotor'],
-  cpf: ['cpf x cnpj', 'cpf', 'cnpj', 'cpf/cnpj', 'documento'],
-  tipoVinculo: ['clt x contrato', 'tipo vinculo', 'vinculo', 'tipo', 'clt/contrato'],
-  dataAdmissao: ['data de contratacao', 'data contratacao', 'data admissao', 'admissao', 'contratacao'],
-  salario: ['pagamento', 'salario', 'valor', 'remuneracao'],
-  ajudaCusto: ['ajuda de custo', 'ajuda custo', 'auxilio'],
-  chavePix: ['pix', 'chave pix', 'chavepix'],
-};
-
-function findColumnIndex(headerRow: unknown[], fieldName: string): number {
-  const aliases = HEADER_ALIASES[fieldName] || [fieldName];
-  for (const alias of aliases) {
-    const idx = headerRow.findIndex((h) => normalizeHeader(String(h)) === normalizeHeader(alias));
-    if (idx >= 0) return idx;
-  }
-  for (const alias of aliases) {
-    const idx = headerRow.findIndex((h) => normalizeHeader(String(h)).includes(normalizeHeader(alias)));
-    if (idx >= 0) return idx;
-  }
-  return -1;
 }
 
 export function mapRow(
@@ -116,79 +64,47 @@ export function mapRow(
   headerRow: unknown[],
   mapping: ColumnMapping
 ): ImportRow {
-  const getByField = (fieldName: string): unknown => {
-    // Primeiro tenta pelo mapping explícito
-    const col = mapping[fieldName];
-    if (col !== undefined && col !== null && col !== '') {
-      let i: number;
-      if (typeof col === 'number') {
-        i = col;
-      } else if (typeof col === 'string' && col.length <= 2 && /^[A-Za-z]+$/.test(col)) {
-        i = col.toUpperCase().charCodeAt(0) - 65;
-      } else {
-        i = headerRow.findIndex((h) => normalizeHeader(String(h)) === normalizeHeader(col));
-      }
-      if (i >= 0 && i < row.length) return row[i];
+  const get = (key: string): unknown => {
+    const col = mapping[key];
+    if (col === undefined || col === null) return undefined;
+    let i: number;
+    if (typeof col === 'number' && Number.isInteger(col)) {
+      i = col;
+    } else if (typeof col === 'string' && col.length <= 2 && /^[A-Za-z]$/.test(col)) {
+      i = col.toUpperCase().charCodeAt(0) - 65;
+    } else {
+      i = headerRow.findIndex((h) => String(h).toLowerCase().trim() === String(col).toLowerCase().trim());
+      if (i < 0) i = headerRow.findIndex((h) => String(h).toLowerCase().trim() === String(key).toLowerCase().trim());
     }
-    
-    // Se não, tenta encontrar automaticamente pelos aliases
-    const idx = findColumnIndex(headerRow, fieldName);
-    if (idx >= 0 && idx < row.length) return row[idx];
-    
+    if (i >= 0 && i < row.length) return row[i];
     return undefined;
   };
-
   const errors: string[] = [];
-  
-  // Nome
-  const nomeRaw = String(getByField('nome') ?? '').trim();
-  const nome = (nomeRaw === '−' || nomeRaw === '-') ? '' : nomeRaw;
+  const nome = String(get('nome') ?? '').trim();
   if (!nome) errors.push('Nome obrigatório');
-  
-  // CPF/CNPJ
-  const cpf = cleanCpfCnpj(getByField('cpf'));
-  if (!cpf) errors.push('CPF/CNPJ inválido');
-  
-  // Salário (PAGAMENTO)
-  const salario = parseCurrency(getByField('salario'));
-  
-  // Data de admissão
-  const dataAdmissao = parseDate(getByField('dataAdmissao'));
-  if (!dataAdmissao) errors.push('Data de contratação inválida');
-  
-  // Tipo de vínculo (CLT X CONTRATO)
-  const tipoVinculoRaw = String(getByField('tipoVinculo') ?? '').trim().toUpperCase();
-  let tipoVinculo = 'CONTRATO';
-  if (tipoVinculoRaw === 'CLT') {
-    tipoVinculo = 'CLT';
-  } else if (tipoVinculoRaw.includes('PJ') || tipoVinculoRaw.includes('CNPJ')) {
-    tipoVinculo = 'PJ';
-  }
-  
-  // Ajuda de custo
-  const valorAjudaCusto = parseCurrency(getByField('ajudaCusto'));
-  const ajudaCusto = valorAjudaCusto > 0;
-  
-  // Chave PIX
-  const chavePix = String(getByField('chavePix') ?? '').trim();
-  const chavePixFinal = (chavePix === '−' || chavePix === '-' || !chavePix) ? undefined : chavePix;
-  
-  // Raw data para debug
+  const cpf = cleanCpf(get('cpf'));
+  if (cpf.length !== 11) errors.push('CPF inválido');
+  const salario = Number(get('salario')) || 0;
+  if (salario < 0) errors.push('Salário inválido');
+  const dataAdmissao = parseDate(get('dataAdmissao'));
+  if (!dataAdmissao) errors.push('Data de admissão inválida');
+  const cargo = String(get('cargo') ?? '').trim();
+  if (!cargo) errors.push('Cargo obrigatório');
   const raw: Record<string, unknown> = {};
   headerRow.forEach((h, i) => {
     if (row[i] !== undefined && row[i] !== '') raw[String(h)] = row[i];
   });
-
   return {
     nome,
     cpf,
+    email: String(get('email') ?? '').trim() || undefined,
     dataAdmissao,
-    funcao: 'Promotor',
+    cargo,
     salario,
-    chavePix: chavePixFinal,
-    tipoVinculo,
-    ajudaCusto,
-    valorAjudaCusto,
+    banco: String(get('banco') ?? '').trim() || undefined,
+    agencia: String(get('agencia') ?? '').trim() || undefined,
+    conta: String(get('conta') ?? '').trim() || undefined,
+    valeTransporte: /^(1|true|sim|s|x)$/i.test(String(get('valeTransporte') ?? '')),
     _raw: raw,
     _errors: errors,
   };
@@ -202,26 +118,9 @@ export function previewImport(
   const header = rows[0] as unknown[];
   const importRows: ImportRow[] = [];
   const errors: string[] = [];
-  const seenCpfs = new Set<string>();
-  
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
-    
-    // Pula linhas vazias ou com dados inválidos
-    const hasContent = row.some((cell) => {
-      const s = String(cell ?? '').trim();
-      return s && s !== '−' && s !== '-';
-    });
-    if (!hasContent) continue;
-    
     const mapped = mapRow(row, header, mapping);
-    
-    // Ignora duplicatas na mesma importação (mesmo CPF)
-    if (mapped.cpf && seenCpfs.has(mapped.cpf)) {
-      continue;
-    }
-    if (mapped.cpf) seenCpfs.add(mapped.cpf);
-    
     importRows.push(mapped);
     if (mapped._errors.length) errors.push(`Linha ${i + 1}: ${mapped._errors.join(', ')}`);
   }
@@ -266,12 +165,11 @@ export async function applyImport(
         cpf: row.cpf,
         email: row.email ?? null,
         dataAdmissao: row.dataAdmissao!,
-        salario: row.salario,
-        funcao: row.funcao || 'Promotor',
-        chavePix: row.chavePix ?? null,
-        tipoVinculo: row.tipoVinculo || 'CONTRATO',
-        ajudaCusto: row.ajudaCusto,
-        valorAjudaCusto: row.valorAjudaCusto,
+        cargoId,
+        banco: row.banco ?? null,
+        agencia: row.agencia ?? null,
+        conta: row.conta ?? null,
+        valeTransporte: row.valeTransporte,
       };
       if (existing) {
         await prisma.funcionario.update({ where: { id: existing.id }, data });

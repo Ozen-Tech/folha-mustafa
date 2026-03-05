@@ -34,82 +34,11 @@ model Funcionario {
   agencia        String?
   conta          String?
   valeTransporte Boolean          @default(false)
-  ajudaCusto     Boolean          @default(false)
-  valorAjudaCusto Float           @default(0)
-  
-  // Configuração de descontos (preparado para integração com sistema de ponto)
-  descontoInss       Boolean  @default(false)  // Se true, desconta INSS
-  descontoIrrf       Boolean  @default(false)  // Se true, desconta IRRF
-  descontosAtivos    Boolean  @default(false)  // Habilita sistema de descontos automáticos
-  dependentesIrrf    Int      @default(0)      // Número de dependentes para cálculo IRRF
-  
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  folhas         FolhaFuncionario[]
-  contratos      Contrato[]
-  distratos      Distrato[]
-  ferias         Ferias[]
-  descontosPonto DescontoPonto[]
-}
-
-// Modelo para integração futura com sistema de ponto
-// Armazena descontos gerados pelo sistema de ponto (faltas, atrasos, etc.)
-model DescontoPonto {
-  id              String   @id @default(cuid())
-  funcionarioId   String
-  competenciaAno  Int
-  competenciaMes  Int
-  tipo            String   // "FALTA", "ATRASO", "SAIDA_ANTECIPADA", etc.
-  descricao       String?
-  data            DateTime // Data do ocorrido
-  minutos         Int?     // Quantidade de minutos (para atrasos)
-  valor           Float    // Valor do desconto calculado
-  aplicado        Boolean  @default(false) // Se já foi aplicado na folha
-  createdAt       DateTime @default(now())
-
-  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
-
-  @@index([funcionarioId, competenciaAno, competenciaMes])
-}
-
-model Contrato {
-  id              String   @id @default(cuid())
-  funcionarioId   String
-  descricao       String?
-  dataInicio      DateTime
-  dataVencimento  DateTime
-  loja            String?
-  cidade          String?
-  estado          String?
-  supervisor      String?
-  arquivoPdf      String?
-  ativo           Boolean  @default(true)
-  createdAt       DateTime @default(now())
-
-  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
-}
-
-model Distrato {
-  id              String   @id @default(cuid())
-  funcionarioId   String
-  descricao       String?
-  dataDistrato    DateTime
-  motivo          String?
-  createdAt       DateTime @default(now())
-
-  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
-}
-
-model Ferias {
-  id              String   @id @default(cuid())
-  funcionarioId   String
-  dataInicio      DateTime
-  dataFim         DateTime
-  observacao      String?
-  createdAt       DateTime @default(now())
-
-  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  cargo        Cargo         @relation(fields: [cargoId], references: [id], onDelete: Restrict)
+  folhas       FolhaFuncionario[]
 }
 
 model Competencia {

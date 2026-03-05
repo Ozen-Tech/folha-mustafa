@@ -76,8 +76,8 @@ export async function recalcularFolhaFuncionario(
   });
   if (!ff) throw new Error('Folha do funcionário não encontrada');
   const ano = ff.folhaPagamento.competencia.ano;
-  const mes = ff.folhaPagamento.competencia.mes;
-  const funcionario = ff.funcionario;
+  const tipoSalario = await prisma.tipoLancamento.findUnique({ where: { codigo: 'SALARIO' } });
+  if (!tipoSalario) throw new Error('Tipo SALARIO não encontrado');
 
   let totalProventos = 0;
   let totalDescontos = 0;
@@ -97,40 +97,10 @@ export async function recalcularFolhaFuncionario(
   }
 
   const salarioBruto = totalProventos;
-  
-  // Calcula INSS e IRRF apenas se o funcionário tiver os descontos habilitados
-  let valorInss = 0;
-  let valorIrrf = 0;
-
-  if (funcionario.descontoInss) {
-    const faixasInss = await getParametroInss(ano);
-    valorInss = calcularInss(baseInss, faixasInss);
-  }
-
-  if (funcionario.descontoIrrf) {
-    const faixasIrrf = await getParametroIrrf(ano);
-    valorIrrf = calcularIrrf(baseIrrf, funcionario.dependentesIrrf ?? 0, faixasIrrf);
-  }
-
-  // Aplicar descontos do sistema de ponto (preparado para integração futura)
-  if (funcionario.descontosAtivos) {
-    const descontosPonto = await prisma.descontoPonto.findMany({
-      where: {
-        funcionarioId: funcionario.id,
-        competenciaAno: ano,
-        competenciaMes: mes,
-        aplicado: false,
-      },
-    });
-
-    for (const desconto of descontosPonto) {
-      totalDescontos += desconto.valor;
-      await prisma.descontoPonto.update({
-        where: { id: desconto.id },
-        data: { aplicado: true },
-      });
-    }
-  }
+  const faixasInss = await getParametroInss(ano);
+  const faixasIrrf = await getParametroIrrf(ano);
+  const valorInss = calcularInss(baseInss, faixasInss);
+  const valorIrrf = calcularIrrf(baseIrrf, 0, faixasIrrf);
 
   totalDescontos += valorInss + valorIrrf;
   const salarioLiquido = Math.round((salarioBruto - totalDescontos) * 100) / 100;

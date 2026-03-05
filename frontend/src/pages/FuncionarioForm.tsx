@@ -8,10 +8,8 @@ export default function FuncionarioForm() {
   const navigate = useNavigate();
   const [cargosList, setCargosList] = useState<{ id: string; nome: string; salarioBase: number }[]>([]);
   const [form, setForm] = useState<Partial<Funcionario> & { dataAdmissao: string }>({
-    nome: '', cpf: '', email: '', dataAdmissao: '', salario: 0,
-    funcao: '', chavePix: '', tipoVinculo: 'CLT', cidade: '', estado: '',
-    loja: '', supervisor: '', valeTransporte: false, ajudaCusto: false, valorAjudaCusto: 0,
-    descontoInss: false, descontoIrrf: false, descontosAtivos: false, dependentesIrrf: 0,
+    nome: '', cpf: '', email: '', dataAdmissao: '', cargoId: '',
+    banco: '', agencia: '', conta: '', valeTransporte: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,52 +96,6 @@ export default function FuncionarioForm() {
             <input type="checkbox" checked={form.valeTransporte ?? false} onChange={(e) => setForm((f) => ({ ...f, valeTransporte: e.target.checked }))} />
             Vale transporte
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-              <input type="checkbox" checked={form.ajudaCusto ?? false} onChange={(e) => setForm((f) => ({ ...f, ajudaCusto: e.target.checked }))} />
-              Ajuda de custo
-            </label>
-            {form.ajudaCusto && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Valor (R$):</label>
-                <input type="number" step="0.01" min="0" value={form.valorAjudaCusto ?? 0} onChange={(e) => setForm((f) => ({ ...f, valorAjudaCusto: parseFloat(e.target.value) || 0 }))} className="input-field" style={{ width: '120px' }} />
-              </div>
-            )}
-          </div>
-
-          {/* Seção de Configuração de Descontos */}
-          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-              Configuração de Descontos
-            </h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Configure quais descontos serão aplicados automaticamente na folha. Por padrão, nenhum desconto é aplicado.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-                <input type="checkbox" checked={form.descontoInss ?? false} onChange={(e) => setForm((f) => ({ ...f, descontoInss: e.target.checked }))} />
-                Descontar INSS
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-                  <input type="checkbox" checked={form.descontoIrrf ?? false} onChange={(e) => setForm((f) => ({ ...f, descontoIrrf: e.target.checked }))} />
-                  Descontar IRRF
-                </label>
-                {form.descontoIrrf && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <label className="form-label" style={{ marginBottom: 0 }}>Dependentes:</label>
-                    <input type="number" min="0" value={form.dependentesIrrf ?? 0} onChange={(e) => setForm((f) => ({ ...f, dependentesIrrf: parseInt(e.target.value) || 0 }))} className="input-field" style={{ width: '80px' }} />
-                  </div>
-                )}
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-                <input type="checkbox" checked={form.descontosAtivos ?? false} onChange={(e) => setForm((f) => ({ ...f, descontosAtivos: e.target.checked }))} />
-                Habilitar descontos de ponto (faltas, atrasos)
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}> — Integração futura</span>
-              </label>
-            </div>
-          </div>
-
           {id && id !== 'novo' && (
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
               <input type="checkbox" checked={form.ativo ?? true} onChange={(e) => setForm((f) => ({ ...f, ativo: e.target.checked }))} />
