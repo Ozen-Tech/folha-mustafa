@@ -69,7 +69,7 @@ router.post('/preview', (req, res) => {
       cpf: r.cpf,
       email: r.email,
       dataAdmissao: r.dataAdmissao,
-      funcao: r.funcao,
+      cargo: r.cargo,
       salario: r.salario,
       chavePix: r.chavePix,
       tipoVinculo: r.tipoVinculo,
